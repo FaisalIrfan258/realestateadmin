@@ -1,18 +1,15 @@
-const getAuthHeader = () => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token")
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    }
-  }
+import Cookies from "js-cookie"
+
+
+export const getAuthHeader = () => {
+  const token = Cookies.get("token")
   return {
     "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
   }
 }
 
-// Get base URL from environment variable
-const getBaseUrl = () => {
+export const getBaseUrl = () => {
   if (typeof window !== "undefined") {
     return process.env.NEXT_PUBLIC_API_BASE_URL || ""
   }
@@ -53,12 +50,14 @@ export const fetchPropertyById = async (id) => {
   }
 }
 
-export const createProperty = async (propertyData) => {
+export const createProperty = async (formData) => {
   try {
     const response = await fetch(`${getBaseUrl()}/api/admin/properties`, {
       method: "POST",
-      headers: getAuthHeader(),
-      body: JSON.stringify(propertyData),
+      headers: {
+        ...getAuthHeader(),
+      },
+      body: formData, 
     })
 
     if (!response.ok) {

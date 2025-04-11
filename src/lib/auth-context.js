@@ -3,10 +3,10 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { logoutAdmin } from "./api"
+import Cookies from "js-cookie"
 
 const AuthContext = createContext()
 
-// Get base URL from environment variable
 const getBaseUrl = () => {
   if (typeof window !== "undefined") {
     return process.env.NEXT_PUBLIC_API_BASE_URL || ""
@@ -21,17 +21,18 @@ export const AuthProvider = ({ children }) => {
   const pathname = usePathname()
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token")
-      console.log("Token from localStorage:", token)
+    const cookieUser = Cookies.get("user")
+    const token = Cookies.get("token")
 
-      if (token) {
-        // Logic to set user
-      } else {
-        // Logic to redirect to login
+    if (token && cookieUser) {
+      setUser(JSON.parse(cookieUser))
+    } else {
+      if (!pathname.startsWith("/login") && !pathname.startsWith("/register")) {
+        router.push("/login")
       }
     }
-  }, [pathname, router])
+    setLoading(false)
+  }, [pathname])
 
   const login = async (email, password) => {
     try {
@@ -49,11 +50,11 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.message || "Login failed")
       }
 
-      // Save token and user data
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("user", JSON.stringify(data))
+      Cookies.set("token", data.token)
+      const { token, ...userInfo } = data
+      Cookies.set("user", JSON.stringify(userInfo))
 
-      setUser(data)
+      setUser(userInfo)
       router.push("/dashboard")
       return { success: true }
     } catch (error) {
@@ -85,21 +86,22 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Call logout API
       await logoutAdmin()
     } catch (error) {
       console.error("Error during logout:", error)
     } finally {
-      // Clear local storage regardless of API success
-      localStorage.removeItem("token")
-      localStorage.removeItem("user")
+      Cookies.remove("token")
+      Cookies.remove("user")
       setUser(null)
       router.push("/login")
     }
   }
 
-  return <AuthContext.Provider value={{ user, login, register, logout, loading }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export const useAuth = () => useContext(AuthContext)
-

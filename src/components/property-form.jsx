@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Plus, X } from "lucide-react"
+import { ArrowLeft, Plus, X, ImageIcon, Video } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -22,6 +22,10 @@ export default function AddPropertyPage() {
   const [amenities, setAmenities] = useState([])
   const [newAmenity, setNewAmenity] = useState("")
 
+  // Track selected files for preview
+  const [selectedImages, setSelectedImages] = useState([])
+  const [selectedVideos, setSelectedVideos] = useState([])
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -31,8 +35,6 @@ export default function AddPropertyPage() {
     area: "",
     bedrooms: "",
     bathrooms: "",
-    images: [],
-    videos: [],
   })
 
   const handleChange = (e) => {
@@ -55,6 +57,16 @@ export default function AddPropertyPage() {
     setAmenities(amenities.filter((_, i) => i !== index))
   }
 
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files)
+    setSelectedImages(files)
+  }
+
+  const handleVideoChange = (e) => {
+    const files = Array.from(e.target.files)
+    setSelectedVideos(files)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -64,27 +76,25 @@ export default function AddPropertyPage() {
     const form = new FormData()
     try {
       // Append form data
-      form.append("title", formData.title)
-      form.append("description", formData.description)
-      form.append("price", formData.price)
-      form.append("location", formData.location)
-      form.append("category", formData.category)
-      form.append("area", formData.area)
-      form.append("bedrooms", formData.bedrooms)
-      form.append("bathrooms", formData.bathrooms)
-      amenities.forEach((amenity) => form.append("amenities[]", amenity))
+      Object.entries(formData).forEach(([key, value]) => {
+        form.append(key, value)
+      })
+
+      // Append amenities
+      amenities.forEach((amenity) => form.append("amenities", amenity))
 
       // Append images
-      formData.images.forEach((image) => {
+      selectedImages.forEach((image) => {
         form.append("images", image)
       })
 
       // Append videos
-      formData.videos.forEach((video) => {
+      selectedVideos.forEach((video) => {
         form.append("videos", video)
       })
 
-      await createProperty(form)
+      const result = await createProperty(form)
+      console.log("Property created:", result)
       setSuccess(true)
 
       // Reset form
@@ -97,10 +107,10 @@ export default function AddPropertyPage() {
         area: "",
         bedrooms: "",
         bathrooms: "",
-        images: [],
-        videos: [],
       })
       setAmenities([])
+      setSelectedImages([])
+      setSelectedVideos([])
 
       // Redirect after a short delay
       setTimeout(() => {
@@ -240,6 +250,12 @@ export default function AddPropertyPage() {
                 placeholder="Add amenity (e.g. Swimming Pool)"
                 value={newAmenity}
                 onChange={(e) => setNewAmenity(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleAddAmenity()
+                  }
+                }}
               />
               <Button type="button" onClick={handleAddAmenity} variant="outline">
                 <Plus className="h-4 w-4" />
@@ -274,45 +290,136 @@ export default function AddPropertyPage() {
             <CardTitle>Media</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="images">Images</Label>
-                <p className="text-sm text-muted-foreground mb-2">Upload images for the property.</p>
-                <Input
-                  id="images"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files) // Convert FileList to Array
-                    setFormData((prev) => ({ ...prev, images: files }))
-                  }}
-                  multiple
-                />
+            <div className="space-y-6">
+              {/* Images Upload */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="images" className="text-base font-medium">
+                    Property Images
+                  </Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Upload multiple images of the property (JPG, PNG)
+                  </p>
+                </div>
+
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <div className="flex flex-col items-center">
+                    <ImageIcon className="h-10 w-10 text-gray-400 mb-2" />
+                    <p className="text-sm font-medium mb-1">Drag and drop images here or click to browse</p>
+                    <p className="text-xs text-muted-foreground mb-4">Maximum 10 images, 5MB each</p>
+                    <Input
+                      id="images"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      multiple
+                      className="w-full max-w-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Image Preview */}
+                {selectedImages.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">Selected Images ({selectedImages.length})</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {selectedImages.map((file, index) => (
+                        <div key={index} className="relative group">
+                          <div className="aspect-square rounded-md overflow-hidden border bg-muted">
+                            <img
+                              src={URL.createObjectURL(file) || "/placeholder.svg"}
+                              alt={`Preview ${index}`}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => {
+                              const newImages = [...selectedImages]
+                              newImages.splice(index, 1)
+                              setSelectedImages(newImages)
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="videos">Videos</Label>
-                <p className="text-sm text-muted-foreground mb-2">Upload videos for the property.</p>
-                <Input
-                  id="videos"
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files) // Convert FileList to Array
-                    setFormData((prev) => ({ ...prev, videos: files }))
-                  }}
-                  multiple
-                />
+              {/* Videos Upload */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="videos" className="text-base font-medium">
+                    Property Videos
+                  </Label>
+                  <p className="text-sm text-muted-foreground mb-2">Upload videos showcasing the property (MP4, MOV)</p>
+                </div>
+
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <div className="flex flex-col items-center">
+                    <Video className="h-10 w-10 text-gray-400 mb-2" />
+                    <p className="text-sm font-medium mb-1">Drag and drop videos here or click to browse</p>
+                    <p className="text-xs text-muted-foreground mb-4">Maximum 3 videos, 50MB each</p>
+                    <Input
+                      id="videos"
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoChange}
+                      multiple
+                      className="w-full max-w-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Video Preview */}
+                {selectedVideos.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">Selected Videos ({selectedVideos.length})</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {selectedVideos.map((file, index) => (
+                        <div key={index} className="relative group">
+                          <div className="aspect-video rounded-md overflow-hidden border bg-muted">
+                            <video src={URL.createObjectURL(file)} className="h-full w-full object-cover" controls />
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => {
+                                const newVideos = [...selectedVideos]
+                                newVideos.splice(index, 1)
+                                setSelectedVideos(newVideos)
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <div className="absolute bottom-2 left-2 text-xs bg-black/70 text-white px-2 py-1 rounded">
+                            {(file.size / (1024 * 1024)).toFixed(2)} MB
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-4">
+        <div className="flex justify-end gap-4 mb-10">
           <Button type="button" variant="outline" onClick={() => router.push("/dashboard/properties")}>
             Cancel
           </Button>
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading || (!selectedImages.length && !selectedVideos.length)}>
             {loading ? "Creating..." : "Create Property"}
           </Button>
         </div>

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Building2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
+import Image from 'next/image'
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -39,7 +40,13 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
-            <Building2 className="h-12 w-12 text-primary" />
+            <Image 
+              src="/logo/nasirlogo.png" 
+              alt="Real Estate Logo" 
+              width={100}
+              height={100}
+              layout="intrinsic"
+            />
           </div>
           <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
           <CardDescription>Enter your credentials to access the dashboard</CardDescription>

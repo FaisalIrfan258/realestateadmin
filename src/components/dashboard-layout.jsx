@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import Image from 'next/image'
 
 export default function DashboardLayout({ children }) {
   const { user, logout, loading } = useAuth()
@@ -59,9 +60,15 @@ export default function DashboardLayout({ children }) {
       {/* Sidebar for desktop */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <div className="flex flex-col flex-grow pt-5 overflow-y-auto bg-white border-r">
-          <div className="flex items-center flex-shrink-0 px-4 mb-5">
-            <Building2 className="h-8 w-8 text-primary mr-2" />
-            <span className="text-xl font-semibold">Real Estate</span>
+          <div className="flex items-center justify-center flex-shrink-0 px-4 mb-5">
+            <Image 
+              src="/logo/nasirlogo.png" 
+              alt="Real Estate Logo" 
+              className="mr-2" 
+              width={100}
+              height={40}
+              layout="intrinsic"
+            />
           </div>
           <div className="mt-5 flex-1 flex flex-col">
             <nav className="flex-1 px-2 space-y-1">
