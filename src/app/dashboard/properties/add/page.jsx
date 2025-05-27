@@ -192,7 +192,7 @@ export default function AddPropertyPage() {
                   <SelectContent>
                     <SelectItem value="Apartment">Apartment</SelectItem>
                     <SelectItem value="House">House</SelectItem>
-                    <SelectItem value="Villa">Villa</SelectItem>
+                    <SelectItem value="Villa">Shop</SelectItem>
                     <SelectItem value="Commercial">Commercial</SelectItem>
                     <SelectItem value="Land">Land</SelectItem>
                   </SelectContent>
