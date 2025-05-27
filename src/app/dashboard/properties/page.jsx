@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Eye, Plus, Search, Pencil, Trash2 } from "lucide-react"
+import { Eye, Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -31,6 +31,11 @@ export default function PropertiesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [propertyToDelete, setPropertyToDelete] = useState(null)
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [propertiesPerPage] = useState(10)
+  
   const router = useRouter()
 
   useEffect(() => {
@@ -57,6 +62,19 @@ export default function PropertiesPage() {
       property.category.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
+  // Get current properties for pagination
+  const indexOfLastProperty = currentPage * propertiesPerPage
+  const indexOfFirstProperty = indexOfLastProperty - propertiesPerPage
+  const currentProperties = filteredProperties.slice(indexOfFirstProperty, indexOfLastProperty)
+  const totalPages = Math.ceil(filteredProperties.length / propertiesPerPage)
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
+  const goToFirstPage = () => setCurrentPage(1)
+  const goToLastPage = () => setCurrentPage(totalPages)
+  const goToPreviousPage = () => setCurrentPage(prev => Math.max(1, prev - 1))
+  const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1))
+
   const handleDeleteClick = (property) => {
     setPropertyToDelete(property)
     setDeleteDialogOpen(true)
@@ -68,16 +86,13 @@ export default function PropertiesPage() {
     try {
       await deleteProperty(propertyToDelete._id)
       setProperties(properties.filter((p) => p._id !== propertyToDelete._id))
-      toast({
-        title: "Property deleted",
-        description: "The property has been successfully deleted.",
+      toast.success("Property deleted", {
+        description: "The property has been successfully deleted."
       })
     } catch (err) {
       console.error("Error deleting property:", err)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete property. Please try again.",
+      toast.error("Error", {
+        description: "Failed to delete property. Please try again."
       })
     } finally {
       setDeleteDialogOpen(false)
@@ -130,11 +145,11 @@ export default function PropertiesPage() {
       </Card>
 
       <Card>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-full">
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
+                <TableHead className="w-1/4">Title</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead>Price</TableHead>
@@ -143,14 +158,14 @@ export default function PropertiesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProperties.length === 0 ? (
+              {currentProperties.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
                     No properties found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProperties.map((property) => (
+                currentProperties.map((property) => (
                   <TableRow key={property._id}>
                     <TableCell className="font-medium">{property.title}</TableCell>
                     <TableCell>
@@ -193,6 +208,54 @@ export default function PropertiesPage() {
             </TableBody>
           </Table>
         </CardContent>
+        {filteredProperties.length > propertiesPerPage && (
+          <div className="flex justify-between items-center p-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              Showing {indexOfFirstProperty + 1}-{Math.min(indexOfLastProperty, filteredProperties.length)} of {filteredProperties.length} properties
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={goToFirstPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm mx-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={goToLastPage}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

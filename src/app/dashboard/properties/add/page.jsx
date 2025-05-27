@@ -9,10 +9,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Plus, X } from "lucide-react"
+import { ArrowLeft, Plus, X} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { toast } from "sonner"
+import { Toaster } from "@/components/ui/sonner"
 
 export default function AddPropertyPage() {
   const router = useRouter()
@@ -72,20 +74,31 @@ export default function AddPropertyPage() {
       form.append("area", formData.area)
       form.append("bedrooms", formData.bedrooms)
       form.append("bathrooms", formData.bathrooms)
-      amenities.forEach((amenity) => form.append("amenities[]", amenity))
+      
+      // Append amenities as a comma-separated string
+      if (amenities.length > 0) {
+        form.append("amenities", amenities.join(","))
+      }
 
       // Append images
-      formData.images.forEach((image) => {
-        form.append("images", image)
-      })
+      if (formData.images && formData.images.length > 0) {
+        for (let i = 0; i < formData.images.length; i++) {
+          form.append("images", formData.images[i])
+        }
+      }
 
       // Append videos
-      formData.videos.forEach((video) => {
-        form.append("videos", video)
-      })
+      if (formData.videos && formData.videos.length > 0) {
+        for (let i = 0; i < formData.videos.length; i++) {
+          form.append("videos", formData.videos[i])
+        }
+      }
 
       await createProperty(form)
       setSuccess(true)
+      toast.success("Success", {
+        description: "Property created successfully!"
+      })
 
       // Reset form
       setFormData({
@@ -109,13 +122,31 @@ export default function AddPropertyPage() {
     } catch (err) {
       console.error("Error creating property:", err)
       setError("Failed to create property. Please try again.")
+      toast.error("Error", {
+        description: "Failed to create property. Please try again."
+      })
     } finally {
       setLoading(false)
     }
   }
 
+  const handleRemoveImage = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }))
+  }
+
+  const handleRemoveVideo = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      videos: prev.videos.filter((_, i) => i !== index)
+    }))
+  }
+
   return (
     <DashboardLayout>
+      <Toaster />
       <div className="flex items-center mb-6">
         <Button variant="ghost" asChild className="mr-4">
           <Link href="/dashboard/properties">
@@ -274,35 +305,105 @@ export default function AddPropertyPage() {
             <CardTitle>Media</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="images">Images</Label>
-                <p className="text-sm text-muted-foreground mb-2">Upload images for the property.</p>
-                <Input
-                  id="images"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files) // Convert FileList to Array
-                    setFormData((prev) => ({ ...prev, images: files }))
-                  }}
-                  multiple
-                />
+                <p className="text-sm text-muted-foreground mb-2">Upload images for the property (supports multiple files).</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Input
+                      id="images"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const newFiles = Array.from(e.target.files)
+                        setFormData((prev) => ({
+                          ...prev,
+                          images: [...(prev.images || []), ...newFiles]
+                        }))
+                      }}
+                      multiple
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </div>
+                
+                {formData.images && formData.images.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">Selected images ({formData.images.length})</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                      {Array.from(formData.images).map((image, index) => (
+                        <div key={`image-${index}`} className="relative group">
+                          <div className="aspect-square rounded-md overflow-hidden border bg-muted">
+                            <img
+                              src={URL.createObjectURL(image)}
+                              alt={`Preview ${index}`}
+                              className="h-full w-full object-cover transition-all hover:scale-105"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                          <p className="text-xs truncate mt-1">{image.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="videos">Videos</Label>
-                <p className="text-sm text-muted-foreground mb-2">Upload videos for the property.</p>
-                <Input
-                  id="videos"
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files) // Convert FileList to Array
-                    setFormData((prev) => ({ ...prev, videos: files }))
-                  }}
-                  multiple
-                />
+                <p className="text-sm text-muted-foreground mb-2">Upload videos for the property (supports multiple files).</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Input
+                      id="videos"
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => {
+                        const newFiles = Array.from(e.target.files)
+                        setFormData((prev) => ({
+                          ...prev,
+                          videos: [...(prev.videos || []), ...newFiles]
+                        }))
+                      }}
+                      multiple
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </div>
+                
+                {formData.videos && formData.videos.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">Selected videos ({formData.videos.length})</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {Array.from(formData.videos).map((video, index) => (
+                        <div key={`video-${index}`} className="relative group">
+                          <div className="aspect-video rounded-md overflow-hidden border bg-muted">
+                            <video
+                              src={URL.createObjectURL(video)}
+                              className="h-full w-full object-cover"
+                              controls
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveVideo(index)}
+                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                          <p className="text-xs truncate mt-1">{video.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

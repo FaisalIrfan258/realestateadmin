@@ -9,17 +9,16 @@ const Toaster = ({
   const { theme = "system" } = useTheme()
 
   return (
-    (<Sonner
+    <Sonner
       theme={theme}
       className="toaster group"
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)"
-        }
-      }
-      {...props} />)
+      style={{
+        "--normal-bg": "var(--popover)",
+        "--normal-text": "var(--popover-foreground)",
+        "--normal-border": "var(--border)"
+      }}
+      {...props}
+    />
   );
 }
 

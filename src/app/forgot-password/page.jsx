@@ -1,35 +1,45 @@
 "use client"
 
 import { useState } from "react"
-import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Building2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import Image from 'next/image'
+import { getBaseUrl } from "@/lib/api"
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
+    setSuccess(false)
     setIsLoading(true)
 
     try {
-      const result = await login(email, password)
-      if (!result.success) {
-        setError(result.error)
+      const response = await fetch(`${getBaseUrl()}/api/admin/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to process request")
       }
+
+      setSuccess(true)
     } catch (err) {
-      setError("An unexpected error occurred. Please try again.")
+      setError(err.message || "An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -48,8 +58,8 @@ export default function LoginPage() {
               layout="intrinsic"
             />
           </div>
-          <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
-          <CardDescription>Enter your credentials to access the dashboard</CardDescription>
+          <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+          <CardDescription>Enter your email and we'll send you a link to reset your password</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -57,6 +67,15 @@ export default function LoginPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+
+          {success && (
+            <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+              <AlertDescription>
+                If an account exists with this email, we've sent password reset instructions.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -70,32 +89,21 @@ export default function LoginPage() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
             </div>
-            <Button type="submit" className="w-full mt-6" disabled={isLoading}>
-              {isLoading ? "Logging in..." : "Login"}
+            <Button type="submit" className="w-full mt-6" disabled={isLoading || success}>
+              {isLoading ? "Processing..." : "Send Reset Link"}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center">
           <p className="text-sm text-muted-foreground">
-            Forgot your password?{" "}
-            <Link href="/forgot-password" className="text-primary hover:underline">
-              Reset Password
+            Remember your password?{" "}
+            <Link href="/login" className="text-primary hover:underline">
+              Back to Login
             </Link>
           </p>
         </CardFooter>
       </Card>
     </div>
   )
-}
-
+} 

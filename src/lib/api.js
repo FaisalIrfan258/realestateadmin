@@ -9,6 +9,13 @@ export const getAuthHeader = () => {
   }
 }
 
+export const getAuthHeaderWithoutContentType = () => {
+  const token = Cookies.get("token")
+  return {
+    ...(token && { Authorization: `Bearer ${token}` }),
+  }
+}
+
 export const getBaseUrl = () => {
   if (typeof window !== "undefined") {
     return process.env.NEXT_PUBLIC_API_BASE_URL || ""
@@ -54,9 +61,7 @@ export const createProperty = async (formData) => {
   try {
     const response = await fetch(`${getBaseUrl()}/api/admin/properties`, {
       method: "POST",
-      headers: {
-        ...getAuthHeader(),
-      },
+      headers: getAuthHeaderWithoutContentType(),
       body: formData, 
     })
 
@@ -73,10 +78,13 @@ export const createProperty = async (formData) => {
 
 export const updateProperty = async (id, propertyData) => {
   try {
+    // Check if propertyData is FormData
+    const isFormData = propertyData instanceof FormData;
+    
     const response = await fetch(`${getBaseUrl()}/api/admin/properties/${id}`, {
       method: "PUT",
-      headers: getAuthHeader(),
-      body: JSON.stringify(propertyData),
+      headers: isFormData ? getAuthHeaderWithoutContentType() : getAuthHeader(),
+      body: isFormData ? propertyData : JSON.stringify(propertyData),
     })
 
     if (!response.ok) {
@@ -101,7 +109,9 @@ export const deleteProperty = async (id) => {
       throw new Error("Failed to delete property")
     }
 
-    return await response.json()
+    const data = await response.json()
+    // Return a simple success message instead of the full data object
+    return { success: true, message: "Property deleted successfully" }
   } catch (error) {
     console.error("Error deleting property:", error)
     throw error
@@ -153,7 +163,9 @@ export const deleteContact = async (id) => {
       throw new Error("Failed to delete contact")
     }
 
-    return await response.json()
+    const data = await response.json()
+    // Return a simple success message instead of the full data object
+    return { success: true, message: "Contact deleted successfully" }
   } catch (error) {
     console.error("Error deleting contact:", error)
     throw error

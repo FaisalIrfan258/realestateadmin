@@ -14,7 +14,7 @@ import { toast } from "sonner"
 import { Toaster } from "@/components/ui/sonner"
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, register } = useAuth()
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -27,6 +27,15 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState(null)
+  const [registerData, setRegisterData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  })
+  const [registerLoading, setRegisterLoading] = useState(false)
+  const [registerSuccess, setRegisterSuccess] = useState(false)
+  const [registerError, setRegisterError] = useState(null)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -48,8 +57,7 @@ export default function ProfilePage() {
     setTimeout(() => {
       setSuccess(true)
       setLoading(false)
-      toast({
-        title: "Profile updated",
+      toast.success("Profile updated", {
         description: "Your profile has been updated successfully.",
       })
     }, 1000)
@@ -81,19 +89,63 @@ export default function ProfilePage() {
         confirmPassword: "",
       })
 
-      toast({
-        title: "Password updated",
+      toast.success("Password updated", {
         description: "Your password has been changed successfully.",
       })
     } catch (err) {
       setError("Failed to change password. Please check your current password and try again.")
-      toast({
-        variant: "destructive",
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to change password. Please try again.",
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleRegisterChange = (e) => {
+    const { name, value } = e.target
+    setRegisterData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault()
+    setRegisterLoading(true)
+    setRegisterError(null)
+    setRegisterSuccess(false)
+
+    // Validate passwords match
+    if (registerData.password !== registerData.confirmPassword) {
+      setRegisterError("Passwords do not match")
+      setRegisterLoading(false)
+      return
+    }
+
+    try {
+      const result = await register(registerData.name, registerData.email, registerData.password)
+      if (result.success) {
+        setRegisterSuccess(true)
+        setRegisterData({
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+        })
+        toast.success("Admin registered", {
+          description: "New admin user has been registered successfully.",
+        })
+      } else {
+        setRegisterError(result.error)
+        toast.error("Error", {
+          description: "Failed to register new admin. Please try again.",
+        })
+      }
+    } catch (err) {
+      setRegisterError("An unexpected error occurred. Please try again.")
+      toast.error("Error", {
+        description: "Failed to register new admin. Please try again.",
+      })
+    } finally {
+      setRegisterLoading(false)
     }
   }
 
@@ -217,6 +269,80 @@ export default function ProfilePage() {
             <CardFooter>
               <Button type="submit" disabled={loading}>
                 {loading ? "Updating..." : "Change Password"}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+
+        {/* Register New Admin Card - Only for existing admins */}
+        <Card className="md:col-span-3 mt-6">
+          <CardHeader>
+            <CardTitle>Register New Admin</CardTitle>
+            <CardDescription>Create a new administrator account</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleRegisterSubmit}>
+            <CardContent className="space-y-4">
+              {registerError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{registerError}</AlertDescription>
+                </Alert>
+              )}
+
+              {registerSuccess && (
+                <Alert className="bg-green-50 text-green-800 border-green-200">
+                  <AlertDescription>New admin registered successfully!</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="registerName">Full Name</Label>
+                  <Input
+                    id="registerName"
+                    name="name"
+                    value={registerData.name}
+                    onChange={handleRegisterChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registerEmail">Email</Label>
+                  <Input
+                    id="registerEmail"
+                    name="email"
+                    type="email"
+                    value={registerData.email}
+                    onChange={handleRegisterChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registerPassword">Password</Label>
+                  <Input
+                    id="registerPassword"
+                    name="password"
+                    type="password"
+                    value={registerData.password}
+                    onChange={handleRegisterChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registerConfirmPassword">Confirm Password</Label>
+                  <Input
+                    id="registerConfirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    value={registerData.confirmPassword}
+                    onChange={handleRegisterChange}
+                    required
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" disabled={registerLoading}>
+                {registerLoading ? "Registering..." : "Register New Admin"}
               </Button>
             </CardFooter>
           </form>

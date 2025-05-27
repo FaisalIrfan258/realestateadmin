@@ -1,12 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { fetchContacts, deleteContact } from "@/lib/api"
+import { fetchContacts, deleteContact, fetchContactById } from "@/lib/api"
 import DashboardLayout from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Phone, MessageSquare, Trash2, Home } from "lucide-react"
+import { Search, Phone, MessageSquare, Trash2, Home, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +19,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { Toaster } from "@/components/ui/sonner"
 
@@ -29,6 +37,13 @@ export default function ContactsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [contactToDelete, setContactToDelete] = useState(null)
+  const [contactDetailOpen, setContactDetailOpen] = useState(false)
+  const [selectedContact, setSelectedContact] = useState(null)
+  const [loadingContact, setLoadingContact] = useState(false)
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [contactsPerPage] = useState(10)
 
   useEffect(() => {
     const loadContacts = async () => {
@@ -55,6 +70,19 @@ export default function ContactsPage() {
       (contact.propertyName && contact.propertyName.toLowerCase().includes(searchTerm.toLowerCase())),
   )
 
+  // Get current contacts for pagination
+  const indexOfLastContact = currentPage * contactsPerPage
+  const indexOfFirstContact = indexOfLastContact - contactsPerPage
+  const currentContacts = filteredContacts.slice(indexOfFirstContact, indexOfLastContact)
+  const totalPages = Math.ceil(filteredContacts.length / contactsPerPage)
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
+  const goToFirstPage = () => setCurrentPage(1)
+  const goToLastPage = () => setCurrentPage(totalPages)
+  const goToPreviousPage = () => setCurrentPage(prev => Math.max(1, prev - 1))
+  const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1))
+
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("en-US", {
@@ -75,20 +103,33 @@ export default function ContactsPage() {
     try {
       await deleteContact(contactToDelete._id)
       setContacts(contacts.filter((c) => c._id !== contactToDelete._id))
-      toast({
-        title: "Contact deleted",
-        description: "The contact has been successfully deleted.",
+      toast.success("Contact deleted", {
+        description: "The contact has been successfully deleted."
       })
     } catch (err) {
       console.error("Error deleting contact:", err)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete contact. Please try again.",
+      toast.error("Error", {
+        description: "Failed to delete contact. Please try again."
       })
     } finally {
       setDeleteDialogOpen(false)
       setContactToDelete(null)
+    }
+  }
+
+  const openContactDetailModal = async (contactId) => {
+    try {
+      setLoadingContact(true)
+      const data = await fetchContactById(contactId)
+      setSelectedContact(data.contact)
+      setContactDetailOpen(true)
+    } catch (err) {
+      console.error("Error fetching contact details:", err)
+      toast.error("Error", {
+        description: "Failed to load contact details. Please try again."
+      })
+    } finally {
+      setLoadingContact(false)
     }
   }
 
@@ -136,27 +177,27 @@ export default function ContactsPage() {
         <CardHeader>
           <CardTitle>All Contacts</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Property</TableHead>
-                <TableHead>Message</TableHead>
+                <TableHead className="w-1/4">Message</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredContacts.length === 0 ? (
+              {currentContacts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
                     No contacts found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredContacts.map((contact) => (
+                currentContacts.map((contact) => (
                   <TableRow key={contact._id}>
                     <TableCell className="font-medium">{contact.name}</TableCell>
                     <TableCell>
@@ -175,7 +216,7 @@ export default function ContactsPage() {
                         <span className="text-muted-foreground text-sm">Not specified</span>
                       )}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">
+                    <TableCell className="max-w-xs">
                       <div className="flex items-center">
                         <MessageSquare className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
                         <span className="truncate">{contact.message}</span>
@@ -185,14 +226,24 @@ export default function ContactsPage() {
                       <Badge variant="outline">{formatDate(contact.createdAt)}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeleteClick(contact)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openContactDetailModal(contact._id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                          onClick={() => handleDeleteClick(contact)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -200,6 +251,54 @@ export default function ContactsPage() {
             </TableBody>
           </Table>
         </CardContent>
+        {filteredContacts.length > contactsPerPage && (
+          <div className="flex justify-between items-center p-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              Showing {indexOfFirstContact + 1}-{Math.min(indexOfLastContact, filteredContacts.length)} of {filteredContacts.length} contacts
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={goToFirstPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm mx-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={goToLastPage}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -218,6 +317,66 @@ export default function ContactsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={contactDetailOpen} onOpenChange={setContactDetailOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Contact Details</DialogTitle>
+            <DialogDescription>
+              Complete information about this contact query
+            </DialogDescription>
+          </DialogHeader>
+          
+          {loadingContact ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : selectedContact ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Name</h3>
+                  <p className="mt-1 text-base">{selectedContact.name}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
+                  <p className="mt-1 text-base">{selectedContact.phone}</p>
+                </div>
+                
+                {selectedContact.propertyName && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Property</h3>
+                    <p className="mt-1 text-base">{selectedContact.propertyName}</p>
+                  </div>
+                )}
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Message</h3>
+                  <p className="mt-1 text-base leading-relaxed whitespace-pre-wrap">
+                    {selectedContact.message}
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Date</h3>
+                  <p className="mt-1 text-base">
+                    {formatDate(selectedContact.createdAt)} at {new Date(selectedContact.createdAt).toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-red-500">Failed to load contact details</div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContactDetailOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }

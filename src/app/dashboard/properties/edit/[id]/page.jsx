@@ -36,6 +36,10 @@ export default function EditPropertyPage({ params }) {
     videos: [],
   })
 
+  // Add state for new file uploads
+  const [newImages, setNewImages] = useState([])
+  const [newVideos, setNewVideos] = useState([])
+
   useEffect(() => {
     const loadProperty = async () => {
       try {
@@ -88,6 +92,16 @@ export default function EditPropertyPage({ params }) {
     setAmenities(amenities.filter((_, i) => i !== index))
   }
 
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files)
+    setNewImages(files)
+  }
+
+  const handleVideoChange = (e) => {
+    const files = Array.from(e.target.files)
+    setNewVideos(files)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitting(true)
@@ -95,18 +109,65 @@ export default function EditPropertyPage({ params }) {
     setSuccess(false)
 
     try {
-      // Convert numeric fields
-      const propertyData = {
-        ...formData,
-        price: Number.parseInt(formData.price, 10),
-        bedrooms: Number.parseInt(formData.bedrooms, 10),
-        bathrooms: Number.parseInt(formData.bathrooms, 10),
-        amenities,
+      // Use FormData if there are new files to upload
+      if (newImages.length > 0 || newVideos.length > 0) {
+        const form = new FormData()
+        
+        // Append basic form data
+        form.append("title", formData.title)
+        form.append("description", formData.description)
+        form.append("price", formData.price)
+        form.append("location", formData.location)
+        form.append("category", formData.category)
+        form.append("area", formData.area)
+        form.append("bedrooms", formData.bedrooms)
+        form.append("bathrooms", formData.bathrooms)
+        
+        // Append existing images URLs if any
+        if (formData.images && formData.images.length > 0) {
+          form.append("existingImages", JSON.stringify(formData.images))
+        }
+        
+        // Append existing video URLs if any
+        if (formData.videos && formData.videos.length > 0) {
+          form.append("existingVideos", JSON.stringify(formData.videos))
+        }
+        
+        // Append amenities as a comma-separated string
+        if (amenities.length > 0) {
+          form.append("amenities", amenities.join(","))
+        }
+        
+        // Append new images
+        if (newImages.length > 0) {
+          for (let i = 0; i < newImages.length; i++) {
+            form.append("images", newImages[i])
+          }
+        }
+        
+        // Append new videos
+        if (newVideos.length > 0) {
+          for (let i = 0; i < newVideos.length; i++) {
+            form.append("videos", newVideos[i])
+          }
+        }
+        
+        await updateProperty(params.id, form)
+      } else {
+        // If no new files, use JSON
+        const propertyData = {
+          ...formData,
+          price: Number.parseInt(formData.price, 10),
+          bedrooms: Number.parseInt(formData.bedrooms, 10),
+          bathrooms: Number.parseInt(formData.bathrooms, 10),
+          amenities,
+        }
+        
+        await updateProperty(params.id, propertyData)
       }
-
-      await updateProperty(params.id, propertyData)
+      
       setSuccess(true)
-
+      
       // Redirect after a short delay
       setTimeout(() => {
         router.push(`/dashboard/properties/${params.id}`)
@@ -300,30 +361,50 @@ export default function EditPropertyPage({ params }) {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="images">Images</Label>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Note: In a real application, you would upload images here.
-                </p>
+                <p className="text-sm text-muted-foreground mb-2">Upload new images for the property.</p>
                 <Input
                   id="images"
-                  type="text"
-                  placeholder="Image URL (for demo purposes)"
-                  value={formData.images[0] || ""}
-                  onChange={(e) => setFormData({ ...formData, images: [e.target.value] })}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  multiple
                 />
+                {formData.images && formData.images.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm font-medium mb-1">Current Images:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.images.map((img, idx) => (
+                        <div key={idx} className="relative h-20 w-20 rounded overflow-hidden">
+                          <img src={img} alt={`Property ${idx}`} className="h-full w-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="videos">Videos</Label>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Note: In a real application, you would upload videos here.
-                </p>
+                <p className="text-sm text-muted-foreground mb-2">Upload new videos for the property.</p>
                 <Input
                   id="videos"
-                  type="text"
-                  placeholder="Video URL (for demo purposes)"
-                  value={formData.videos[0] || ""}
-                  onChange={(e) => setFormData({ ...formData, videos: [e.target.value] })}
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoChange}
+                  multiple
                 />
+                {formData.videos && formData.videos.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm font-medium mb-1">Current Videos:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.videos.map((video, idx) => (
+                        <div key={idx} className="relative rounded overflow-hidden">
+                          <p className="text-sm">{video.split('/').pop()}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

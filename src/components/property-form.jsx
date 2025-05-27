@@ -76,22 +76,33 @@ export default function AddPropertyPage() {
     const form = new FormData()
     try {
       // Append form data
-      Object.entries(formData).forEach(([key, value]) => {
-        form.append(key, value)
-      })
-
-      // Append amenities
-      amenities.forEach((amenity) => form.append("amenities", amenity))
+      form.append("title", formData.title)
+      form.append("description", formData.description)
+      form.append("price", formData.price)
+      form.append("location", formData.location)
+      form.append("category", formData.category)
+      form.append("area", formData.area)
+      form.append("bedrooms", formData.bedrooms)
+      form.append("bathrooms", formData.bathrooms)
+      
+      // Append amenities as a comma-separated string
+      if (amenities.length > 0) {
+        form.append("amenities", amenities.join(","))
+      }
 
       // Append images
-      selectedImages.forEach((image) => {
-        form.append("images", image)
-      })
+      if (selectedImages && selectedImages.length > 0) {
+        for (let i = 0; i < selectedImages.length; i++) {
+          form.append("images", selectedImages[i])
+        }
+      }
 
       // Append videos
-      selectedVideos.forEach((video) => {
-        form.append("videos", video)
-      })
+      if (selectedVideos && selectedVideos.length > 0) {
+        for (let i = 0; i < selectedVideos.length; i++) {
+          form.append("videos", selectedVideos[i])
+        }
+      }
 
       const result = await createProperty(form)
       console.log("Property created:", result)
