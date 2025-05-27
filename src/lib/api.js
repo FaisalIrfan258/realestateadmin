@@ -230,3 +230,45 @@ export const logoutAdmin = async () => {
   }
 }
 
+export const forgotPassword = async (email) => {
+  try {
+    const response = await fetch(`${getBaseUrl()}/api/admin/forgot-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to send reset password email")
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("Error in forgot password request:", error)
+    throw error
+  }
+}
+
+export const resetPassword = async (resetToken, password) => {
+  try {
+    const response = await fetch(`${getBaseUrl()}/api/admin/reset-password/${resetToken}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ password }),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to reset password")
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("Error resetting password:", error)
+    throw error
+  }
+}
+
