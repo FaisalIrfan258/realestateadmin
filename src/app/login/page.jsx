@@ -86,14 +86,7 @@ export default function LoginPage() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
-            Forgot your password?{" "}
-            <Link href="/forgot-password" className="text-primary hover:underline">
-              Reset Password
-            </Link>
-          </p>
-        </CardFooter>
+      
       </Card>
     </div>
   )
