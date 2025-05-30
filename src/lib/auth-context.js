@@ -27,7 +27,10 @@ export const AuthProvider = ({ children }) => {
     if (token && cookieUser) {
       setUser(JSON.parse(cookieUser))
     } else {
-      if (!pathname.startsWith("/login") && !pathname.startsWith("/register")) {
+      if (!pathname.startsWith("/login") && 
+          !pathname.startsWith("/register") && 
+          !pathname.startsWith("/forgot-password") && 
+          !pathname.startsWith("/reset-password")) {
         router.push("/login")
       }
     }

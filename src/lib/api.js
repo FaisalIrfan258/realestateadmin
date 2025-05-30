@@ -232,7 +232,7 @@ export const logoutAdmin = async () => {
 
 export const forgotPassword = async (email) => {
   try {
-    const response = await fetch(`${getBaseUrl()}/api/admin/forgot-password`, {
+    const response = await fetch(`${getBaseUrl()}/api/admin/forgotpassword`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -253,7 +253,7 @@ export const forgotPassword = async (email) => {
 
 export const resetPassword = async (resetToken, password) => {
   try {
-    const response = await fetch(`${getBaseUrl()}/api/admin/reset-password/${resetToken}`, {
+    const response = await fetch(`${getBaseUrl()}/api/admin/resetpassword/${resetToken}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
