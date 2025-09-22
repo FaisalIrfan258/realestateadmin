@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { createProperty } from "@/lib/api"
+import { uploadToCloudinary } from "@/lib/cloudinary"
 import DashboardLayout from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -63,38 +64,61 @@ export default function AddPropertyPage() {
     setError(null)
     setSuccess(false)
 
-    const form = new FormData()
     try {
-      // Append form data
-      form.append("title", formData.title)
-      form.append("description", formData.description)
-      form.append("price", formData.price)
-      form.append("location", formData.location)
-      form.append("category", formData.category)
-      form.append("area", formData.area)
-      form.append("bedrooms", formData.bedrooms)
-      form.append("bathrooms", formData.bathrooms)
-      
-      // Append amenities as a comma-separated string
-      if (amenities.length > 0) {
-        form.append("amenities", amenities.join(","))
-      }
-
-      // Append images
+      // Upload images to Cloudinary first
+      let imageUrls = []
       if (formData.images && formData.images.length > 0) {
-        for (let i = 0; i < formData.images.length; i++) {
-          form.append("images", formData.images[i])
+        console.log('Uploading images to Cloudinary:', formData.images.length)
+        setError("Uploading images...")
+        
+        for (const image of formData.images) {
+          try {
+            const url = await uploadToCloudinary(image, 'image')
+            imageUrls.push(url)
+            console.log('Image uploaded:', url)
+          } catch (uploadError) {
+            console.error('Error uploading image:', uploadError)
+            throw new Error(`Failed to upload image: ${image.name}`)
+          }
         }
       }
 
-      // Append videos
+      // Upload videos to Cloudinary
+      let videoUrls = []
       if (formData.videos && formData.videos.length > 0) {
-        for (let i = 0; i < formData.videos.length; i++) {
-          form.append("videos", formData.videos[i])
+        console.log('Uploading videos to Cloudinary:', formData.videos.length)
+        setError("Uploading videos...")
+        
+        for (const video of formData.videos) {
+          try {
+            const url = await uploadToCloudinary(video, 'video')
+            videoUrls.push(url)
+            console.log('Video uploaded:', url)
+          } catch (uploadError) {
+            console.error('Error uploading video:', uploadError)
+            throw new Error(`Failed to upload video: ${video.name}`)
+          }
         }
       }
 
-      await createProperty(form)
+      // Create JSON payload with Cloudinary URLs
+      const propertyData = {
+        category: formData.category,
+        title: formData.title,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        location: formData.location,
+        area: formData.area,
+        bedrooms: parseInt(formData.bedrooms) || 0,
+        bathrooms: parseInt(formData.bathrooms) || 0,
+        amenities: amenities,
+        images: imageUrls,
+        videos: videoUrls
+      }
+
+      console.log('Sending property data:', propertyData)
+      setError("Creating property...")
+      await createProperty(propertyData)
       setSuccess(true)
       toast.success("Success", {
         description: "Property created successfully!"
@@ -214,7 +238,7 @@ export default function AddPropertyPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">Price ($)</Label>
+                <Label htmlFor="price">Price (₨)</Label>
                 <Input id="price" name="price" type="number" value={formData.price} onChange={handleChange} required />
               </div>
               <div className="space-y-2">
@@ -236,25 +260,25 @@ export default function AddPropertyPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="bedrooms">Bedrooms</Label>
+                <Label htmlFor="bedrooms">Bedrooms (Optional)</Label>
                 <Input
                   id="bedrooms"
                   name="bedrooms"
                   type="number"
+                  placeholder="0"
                   value={formData.bedrooms}
                   onChange={handleChange}
-                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bathrooms">Bathrooms</Label>
+                <Label htmlFor="bathrooms">Bathrooms (Optional)</Label>
                 <Input
                   id="bathrooms"
                   name="bathrooms"
                   type="number"
+                  placeholder="0"
                   value={formData.bathrooms}
                   onChange={handleChange}
-                  required
                 />
               </div>
             </div>

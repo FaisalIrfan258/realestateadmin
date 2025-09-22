@@ -172,7 +172,7 @@ export default function PropertiesPage() {
                       <Badge variant="outline">{property.category}</Badge>
                     </TableCell>
                     <TableCell>{property.location}</TableCell>
-                    <TableCell>${property.price.toLocaleString()}</TableCell>
+                    <TableCell>₨{property.price.toLocaleString()}</TableCell>
                     <TableCell>
                       {property.bedrooms} beds • {property.bathrooms} baths
                     </TableCell>

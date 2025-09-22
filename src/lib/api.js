@@ -57,12 +57,12 @@ export const fetchPropertyById = async (id) => {
   }
 }
 
-export const createProperty = async (formData) => {
+export const createProperty = async (propertyData) => {
   try {
     const response = await fetch(`${getBaseUrl()}/api/admin/properties`, {
       method: "POST",
-      headers: getAuthHeaderWithoutContentType(),
-      body: formData, 
+      headers: getAuthHeader(),
+      body: JSON.stringify(propertyData), 
     })
 
     if (!response.ok) {
